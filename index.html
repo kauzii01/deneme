@@ -1,7 +1,117 @@
 <!DOCTYPE html>
-<html>
-<body style="background:black; color:white; text-align:center;">
-  <h1>Benim site </h1>
-  <p>31</p>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>savas simtest</title>
+<style>
+  body { text-align:center; font-family:sans-serif; background:#111; color:#fff; }
+  canvas { background:#222; display:block; margin:auto; border:2px solid #555; cursor:pointer; }
+  button { margin:10px; padding:10px; font-size:16px; }
+</style>
+</head>
+<body>
+<h1>savas simtest</h1>
+<p>Tıklayarak bir ülke seç ve saldırı başlat!</p>
+<button id="toggle">Durdur / Başlat</button>
+<canvas id="game" width="500" height="500"></canvas>
+<p id="info"></p>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const gridSize = 10;
+const cellSize = canvas.width / gridSize;
+
+const countries = [
+  {name:'Kırmızı', color:'red'},
+  {name:'Mavi', color:'blue'},
+  {name:'Yeşil', color:'green'},
+  {name:'Sarı', color:'yellow'},
+  {name:'Mor', color:'purple'}
+];
+
+let grid = [];
+for(let y=0;y<gridSize;y++){
+  grid[y] = [];
+  for(let x=0;x<gridSize;x++){
+    grid[y][x] = Math.floor(Math.random()*countries.length);
+  }
+}
+
+let turn = 0;
+let running = true;
+let selectedCountry = null;
+
+function drawGrid(){
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      ctx.fillStyle = countries[grid[y][x]].color;
+      ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+      ctx.strokeStyle = '#111';
+      ctx.strokeRect(x*cellSize, y*cellSize, cellSize, cellSize);
+    }
+  }
+}
+
+function battle(){
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      let current = grid[y][x];
+      let neighbors = [
+        [x+1,y],[x-1,y],[x,y+1],[x,y-1]
+      ];
+      neighbors.forEach(n=>{
+        let nx=n[0], ny=n[1];
+        if(nx>=0 && nx<gridSize && ny>=0 && ny<gridSize){
+          // tıklanan ülkeyi saldırgan yap
+          if(selectedCountry !== null && current===selectedCountry && Math.random()<0.3){
+            grid[ny][nx]=current;
+          } else if(selectedCountry===null && Math.random()<0.1){
+            grid[ny][nx]=current;
+          }
+        }
+      });
+    }
+  }
+}
+
+function getScores(){
+  let scores = Array(countries.length).fill(0);
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      scores[grid[y][x]]++;
+    }
+  }
+  return scores;
+}
+
+canvas.addEventListener('click', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left)/cellSize);
+  const y = Math.floor((e.clientY - rect.top)/cellSize);
+  selectedCountry = grid[y][x];
+});
+
+document.getElementById('toggle').addEventListener('click', ()=>{
+  running = !running;
+});
+
+function update(){
+  if(running) battle();
+  drawGrid();
+  turn++;
+  let scores = getScores();
+  let infoText = 'Tur: '+turn+' | ';
+  countries.forEach((c,i)=>{
+    infoText += c.name+': '+scores[i]+' ';
+  });
+  document.getElementById('info').innerText = infoText;
+  requestAnimationFrame(update);
+}
+
+drawGrid();
+update();
+</script>
 </body>
 </html>
