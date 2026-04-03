@@ -2,39 +2,83 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>savas simtest</title>
+<title>Modern Wars Sim</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  body { text-align:center; font-family:sans-serif; background:#111; color:#fff; }
-  canvas { background:#222; display:block; margin:auto; border:2px solid #555; cursor:pointer; }
-  button { margin:10px; padding:10px; font-size:16px; }
+  #map { height: 600px; width: 100%; }
+  #controls { margin: 10px; }
+  .army-label { background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px; }
 </style>
 </head>
 <body>
-<h1>savas simtest</h1>
-<p>Tıklayarak bir ülke seç ve saldırı başlat!</p>
-<button id="toggle">Durdur / Başlat</button>
-<canvas id="game" width="500" height="500"></canvas>
-<p id="info"></p>
 
+<div id="controls">
+  Hız: 
+  <button onclick="changeSpeed(0.5)">0.5x</button>
+  <button onclick="changeSpeed(1)">1x</button>
+  <button onclick="changeSpeed(2)">2x</button>
+  <button onclick="restartGame()">Yeniden Başlat</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+let map = L.map('map').setView([20, 0], 2);
 
-const gridSize = 10;
-const cellSize = canvas.width / gridSize;
+// Harita katmanı
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-const countries = [
-  {name:'Kırmızı', color:'red'},
-  {name:'Mavi', color:'blue'},
-  {name:'Yeşil', color:'green'},
-  {name:'Sarı', color:'yellow'},
-  {name:'Mor', color:'purple'}
+// Örnek ülkeler ve ordular
+let countries = [
+  {name: 'Türkiye', lat: 39.0, lng: 35.0, army: 1000},
+  {name: 'ABD', lat: 38.0, lng: -97.0, army: 1200},
+  {name: 'Rusya', lat: 60.0, lng: 90.0, army: 1500}
 ];
 
-let grid = [];
-for(let y=0;y<gridSize;y++){
-  grid[y] = [];
-  for(let x=0;x<gridSize;x++){
+let armyMarkers = [];
+let gameSpeed = 1; // 1x varsayılan
+let gameInterval;
+
+function startGame() {
+  armyMarkers.forEach(m => map.removeLayer(m));
+  armyMarkers = [];
+  
+  countries.forEach(country => {
+    let marker = L.marker([country.lat, country.lng]).addTo(map);
+    marker.bindPopup(`<b>${country.name}</b><br>Ordu: ${country.army}`).openPopup();
+    armyMarkers.push(marker);
+  });
+
+  if(gameInterval) clearInterval(gameInterval);
+  gameInterval = setInterval(gameLoop, 1000/gameSpeed);
+}
+
+function gameLoop() {
+  // Örnek: her ülkenin ordusu rastgele artıyor
+  countries.forEach((c, i) => {
+    c.army += Math.floor(Math.random() * 10);
+    armyMarkers[i].setPopupContent(`<b>${c.name}</b><br>Ordu: ${c.army}`);
+  });
+}
+
+function changeSpeed(speed) {
+  gameSpeed = speed;
+  startGame(); // hız değişince interval güncelleniyor
+}
+
+function restartGame() {
+  countries.forEach(c => c.army = Math.floor(Math.random() * 1000 + 500)); // başlangıç orduları
+  startGame();
+}
+
+startGame();
+</script>
+
+</body>
+</html>  for(let x=0;x<gridSize;x++){
     grid[y][x] = Math.floor(Math.random()*countries.length);
   }
 }
