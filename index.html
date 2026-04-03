@@ -1,40 +1,312 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Modern Wars Sim</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<style>
-  #map { height: 600px; width: 100%; }
-  #controls { margin: 10px; }
-  .army-label { background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Satellite War: Organic Frontlines</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <script type="importmap">
+      {
+        "imports": {
+          "leaflet": "https://esm.sh/leaflet@1.9.4",
+          "jszip": "https://esm.sh/jszip@3.10.1"
+        }
+      }
+    </script>
 </head>
 <body>
+    <div id="map"></div>
+    
 
-<div id="controls">
-  Hız: 
-  <button onclick="changeSpeed(0.5)">0.5x</button>
-  <button onclick="changeSpeed(1)">1x</button>
-  <button onclick="changeSpeed(2)">2x</button>
-  <button onclick="restartGame()">Yeniden Başlat</button>
-</div>
 
-<div id="map"></div>
+    <div id="settings-overlay" class="settings-overlay thematic-overlay" style="display:none">
+        <div class="menu-v2-overlay"></div>
+        <div class="menu-v2-container">
+            <div class="menu-v2-header">
+                <h1 class="menu-v2-title">SETTINGS</h1>
+                <div class="menu-v2-author">System Configuration</div>
+            </div>
+            <div class="menu-v2-nav">
+                <div class="scenario-selection-container">
+                    <div class="selection-header">
+                        <button id="close-settings-btn" class="selection-back-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                            <span>BACK</span>
+                        </button>
+                        <div class="settings-tab-container" style="margin-bottom:0;">
+                            <button class="settings-tab-btn active" data-tab="sys">SYSTEM</button>
+                            <button class="settings-tab-btn" data-tab="pre">PRESETS</button>
+                            <button class="settings-tab-btn" data-tab="eng">ENGINE</button>
+                            <button class="settings-tab-btn" data-tab="vis">VISUALS</button>
+                        </div>
+                    </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-let map = L.map('map').setView([20, 0], 2);
+                    <div class="scenario-scroller-v2" style="padding-top: 10px;">
+                        <!-- System Tab -->
+                        <div id="settings-tab-sys" class="settings-tab-pane">
+                <div class="setting-group">
+                    <label data-i18n="LANGUAGE">Language</label>
+                    <select id="language-select">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="pt">Português</option>
+                        <option value="ru">Русский</option>
+                        <option value="zh">中文</option>
+                        <option value="ja">日本語</option>
+                        <option value="it">Italiano</option>
+                        <option value="pl">Polski</option>
+                        <option value="uk">Українська</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="ar">العربية</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label data-i18n="MAX_UNITS">Max Units (Global)</label>
+                    <select id="unit-limit-select">
+                        <option value="100" data-i18n="UNIT_MIN">100 (Minimalist)</option>
+                        <option value="250" selected data-i18n="UNIT_STD">250 (Standard)</option>
+                        <option value="500" data-i18n="UNIT_WAR">500 (Grand War)</option>
+                        <option value="1000" data-i18n="UNIT_STRESS">1000 (Maximum Stress)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label data-i18n="BG_VOLUME">Background Music Volume</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="range" id="music-volume-slider" min="0" max="1" step="0.01" value="0.15" style="flex: 1; cursor: pointer; accent-color: #ff4757;">
+                        <span id="music-vol-val" style="font-size: 11px; color: #888; min-width: 35px; font-family: monospace;">15%</span>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label>Custom Soundtrack</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <input type="file" id="custom-track-input" accept="audio/*" style="font-size: 11px; color: #888;">
+                        <div style="display: flex; gap: 6px;">
+                            <button id="clear-custom-track-btn" class="mini-btn" style="flex: 1; background: #c0392b; font-size: 9px; padding: 4px;">Reset to Original</button>
+                        </div>
+                        <small style="font-size: 9px; color: #555;">Uploaded MP3s will replace the standard background loop.</small>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="save-skip-checkbox" style="width: 18px; height: 18px; accent-color: #27ae60;">
+                        <span data-i18n="SAVE_SKIP">Remember & Skip on Startup</span>
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="disable-invisible-buffs-checkbox" style="width: 18px; height: 18px; accent-color: #9b59b6;">
+                        <span>Disable Invisible Buffs Globally</span>
+                    </label>
+                    <small>When enabled, hidden buffs are ignored and only visible buffs affect combat.</small>
+                </div>
+            </div>
 
-// Harita katmanı
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+            <!-- Engine Tab -->
+            <div id="settings-tab-eng" class="settings-tab-pane" style="display:none">
+                <div class="setting-group">
+                    <label data-i18n="MAP_RES">Map Resolution</label>
+                    <select id="map-res-select">
+                        <option value="110m" selected data-i18n="RES_LOW">Low (Performance)</option>
+                        <option value="50m" data-i18n="RES_STD">Standard (Medium)</option>
+                        <option value="10m" data-i18n="RES_HIGH">High (Very Heavy)</option>
+                    </select>
+                    <small data-i18n="RES_SUB">Higher resolution improves borders but slows loading.</small>
+                </div>
+                <div class="setting-group">
+                    <label data-i18n="GRID_DENSITY">Grid Density</label>
+                    <select id="grid-res-select">
+                        <option value="0.25" data-i18n="GRID_FAST">Low (Fast)</option>
+                        <option value="0.15" selected data-i18n="GRID_STD">Standard</option>
+                        <option value="0.1" data-i18n="GRID_SMOOTH">High (Smooth)</option>
+                        <option value="0.05" data-i18n="GRID_INSANE">Insane (Ultra)</option>
+                    </select>
+                    <small data-i18n="GRID_SUB">Density affects the smoothness of frontlines.</small>
+                </div>
+            </div>
 
-// Örnek ülkeler ve ordular
-let countries = [
-  {name: 'Türkiye', lat: 39.0, lng: 35.0, army: 1000},
-  {name: 'ABD', lat: 38.0, lng: -97.0, army: 1200},
+            <!-- Presets Tab -->
+            <div id="settings-tab-pre" class="settings-tab-pane" style="display:none">
+                <div class="setting-group">
+                    <label>Performance Presets</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="preset-low-btn" class="mini-btn" style="flex: 1; padding: 10px; background: #c0392b;">LOW PERFORMANCE</button>
+                        <button id="preset-default-btn" class="mini-btn" style="flex: 1; padding: 10px; background: #2e86de;">DEFAULT</button>
+                    </div>
+                    <small style="margin-top: 8px;">Instantly adjust all resolution, visual, and unit settings.</small>
+                </div>
+            </div>
+
+            <!-- Visuals Tab -->
+            <div id="settings-tab-vis" class="settings-tab-pane" style="display:none">
+                <div class="setting-group">
+                    <label>Style</label>
+                    <select id="imagery-select">
+                        <option value="arcgis" selected>ArcGIS World Imagery</option>
+                        <option value="google">Google Earth (No Video Recording)</option>
+                        <option value="google_cartoon">Google Maps (Standard View)</option>
+                        <option value="wargames">Simplified Mode</option>
+                    </select>
+                </div>
+                <div class="setting-group" style="display: flex; flex-direction: column; gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="disable-mountains-checkbox" style="width: 18px; height: 18px; accent-color: #f1c40f;">
+                        <span data-i18n="DISABLE_MT">Disable Mountains</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="disable-provinces-checkbox" style="width: 18px; height: 18px; accent-color: #95a5a6;" checked>
+                        <span data-i18n="DISABLE_PROV">Disable Provinces</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="disable-units-visually-checkbox" style="width: 18px; height: 18px; accent-color: #e74c3c;">
+                        <span data-i18n="HIDE_UNITS">Hide Units Visually</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="disable-country-gradient-checkbox" style="width: 18px; height: 18px; accent-color: #3498db;">
+                        <span>Disable Country Gradient</span>
+                    </label>
+                </div>
+            </div>
+
+                        <button id="launch-btn" class="start-btn" style="margin-top: 20px; width: 100%;" data-i18n="APPLY_INIT">Apply & Initialize</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-menu" class="main-menu-v2" style="display:none">
+        <div class="menu-v2-overlay"></div>
+        <div class="menu-v2-container">
+            <div class="menu-v2-header">
+                <h1 class="menu-v2-title">MODERN WARS</h1>
+                <div class="menu-v2-author">Created by man_82</div>
+            </div>
+
+            <div class="menu-v2-nav" id="menu-nav-main">
+                <div id="nav-links-container" class="nav-links-fade">
+                    <button id="play-mode-btn" class="menu-v2-link primary">
+                        <span>PLAY</span>
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <div class="nav-separator"></div>
+                    <button id="editor-mode-btn" class="menu-v2-link">EDITOR</button>
+                    <button id="menu-hub-btn" class="menu-v2-link">EDITOR HUB</button>
+                    <button id="menu-load-play-btn" class="menu-v2-link">LOAD FILE</button>
+                    <button id="main-settings-btn" class="menu-v2-link">ENGINE SETTINGS</button>
+                    <button id="global-chat-btn" class="menu-v2-link">GLOBAL CHAT</button>
+                    <button id="tutorial-btn" class="menu-v2-link">TUTORIAL</button>
+                    <button id="discord-server-btn" class="menu-v2-link">DISCORD SERVER</button>
+                    <button id="donate-btn" class="menu-v2-link">SUPPORT DEV</button>
+                    <button id="download-btn" class="menu-v2-link">DOWNLOAD BUILD</button>
+                    <button id="credits-btn" class="menu-v2-link">CREDITS</button>
+                </div>
+
+                <!-- New Integrated Scenario Scroller -->
+                <div id="menu-scenario-selector" class="scenario-selection-container" style="display: none;">
+                    <div class="selection-header">
+                        <button id="back-to-nav-btn" class="selection-back-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                            <span>BACK</span>
+                        </button>
+                        <h2 class="selection-title">CHOOSE ERA</h2>
+                    </div>
+                    <div class="scenario-scroller-v2">
+                        <!-- Eras categorized for smooth scrolling -->
+                        <div class="scroller-section">
+                            <div class="scroller-label">PRESENT & COLD WAR</div>
+                            <div class="scroller-grid">
+                                <div class="scroller-card primary" id="scroller-choice-modern">
+                                    <div class="scroller-card-name">2022 MODERN DAY</div>
+                                    <div class="scroller-card-desc">Current global geopolitics and real-world alliances.</div>
+                                    <div class="scroller-card-credits">Map: UnionOfBritain</div>
+                                </div>
+                                <div class="scroller-card" id="scroller-choice-1974">
+                                    <div class="scroller-card-name">1974 COLD WAR</div>
+                                    <div class="scroller-card-desc">Bipolar world, proxy fronts, and superpower blocs.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="scroller-section">
+                            <div class="scroller-label">WORLD WARS</div>
+                            <div class="scroller-grid">
+                                <div class="scroller-card" id="scroller-choice-1942">
+                                    <div class="scroller-card-name">1942 TOTAL WAR</div>
+                                    <div class="scroller-card-desc">The high tide of the Axis powers' global advance.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+                                <div class="scroller-card" id="scroller-choice-1936">
+                                    <div class="scroller-card-name">1936 INTERWAR</div>
+                                    <div class="scroller-card-desc">The buildup to the most destructive war in history.</div>
+                                    <div class="scroller-card-credits">Map: filip</div>
+                                </div>
+                                <div class="scroller-card" id="scroller-choice-1914">
+                                    <div class="scroller-card-name">1914 GREAT WAR</div>
+                                    <div class="scroller-card-desc">Empires collide on the trenches of Europe.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="scroller-section">
+                            <div class="scroller-label">HISTORICAL & REGIONAL</div>
+                            <div class="scroller-grid">
+                                <div class="scroller-card" id="scroller-choice-1804">
+                                    <div class="scroller-card-name">1804 NAPOLEONIC</div>
+                                    <div class="scroller-card-desc">Revolutionary France clashing with global coalitions.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+                                <div class="scroller-card" id="scroller-choice-1492">
+                                    <div class="scroller-card-name">1492 EXPLORATION</div>
+                                    <div class="scroller-card-desc">The discovery of the New World and Old World rivalries.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+                                <div class="scroller-card" id="scroller-choice-1ad">
+                                    <div class="scroller-card-name">1 AD ANTIQUITY</div>
+                                    <div class="scroller-card-desc">Classic empires and frontier legions of Rome and beyond.</div>
+                                    <div class="scroller-card-credits">Map: System</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-canada">
+                                    <div class="scroller-card-name">CANADA PROVINCES</div>
+                                    <div class="scroller-card-desc">Provincial conflicts across Canada.</div>
+                                    <div class="scroller-card-credits">Map: Gurt / man_82</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-france">
+                                    <div class="scroller-card-name">FRANCE DEPARTMENTS</div>
+                                    <div class="scroller-card-desc">Departments & regional scenarios for France.</div>
+                                    <div class="scroller-card-credits">Map: man_82</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-germany">
+                                    <div class="scroller-card-name">GERMANY STATES</div>
+                                    <div class="scroller-card-desc">Federal state level conflict in Germany.</div>
+                                    <div class="scroller-card-credits">Map: orange</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-england">
+                                    <div class="scroller-card-name">ENGLAND STATES</div>
+                                    <div class="scroller-card-desc">Counties and regional conflict in England.</div>
+                                    <div class="scroller-card-credits">Map: System</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-us">
+                                    <div class="scroller-card-name">US STATES</div>
+                                    <div class="scroller-card-desc">Internal subdivision conflict across North America.</div>
+                                    <div class="scroller-card-credits">Map: angel</div>
+                                </div>
+
+                                <div class="scroller-card" id="scroller-choice-poland">
+                                    <div class="scroller-card-name">POLAND STATES</div>
+                                    <div class="scroller-card-desc">Detailed voivodeship and internal regional conflict in Poland.</div>
+                                    <div class="scroller-card-credits">Map: man_82</div>
+                                </div>
+      {name: 'ABD', lat: 38.0, lng: -97.0, army: 1200},
   {name: 'Rusya', lat: 60.0, lng: 90.0, army: 1500}
 ];
 
